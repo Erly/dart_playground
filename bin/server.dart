@@ -1,4 +1,4 @@
-// Copyright (c) 2016, <your name>. All rights reserved. Use of this source code
+// Copyright (c) 2016, Erlantz Oniga. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
 import 'dart:io';
@@ -7,7 +7,7 @@ import 'package:args/args.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as io;
 
-void main(List<String> args) {
+main(List<String> args) async {
   var parser = new ArgParser()
     ..addOption('port', abbr: 'p', defaultsTo: '8080');
 
@@ -18,9 +18,18 @@ void main(List<String> args) {
     exit(1);
   });
 
+  var staticHandler = createStaticHandler('web/',
+      serveFilesOutsidePath: true,
+      defaultDocument: 'index.html');
+
+  var cascadeHandler = new shelf.Cascade()
+    .add(staticHandler)
+    .add(_echoRequest)
+    .handler;
+
   var handler = const shelf.Pipeline()
       .addMiddleware(shelf.logRequests())
-      .addHandler(_echoRequest);
+      .addHandler(cascadeHandler);
 
   io.serve(handler, 'localhost', port).then((server) {
     print('Serving at http://${server.address.host}:${server.port}');
